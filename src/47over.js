@@ -53,9 +53,10 @@ yy.PositionalWindowFunc = class PositionalWindowFunc {
 
 		query.windowfns.push({
 			funcid: this.funcid,
-			as: this.as,
+			as: this.as || this.nick,
 			expressionColumnId: this.args && this.args[0] ? this.args[0].columnid : null,
-			offset: this.args && this.args[1] ? this.args[1].value : 1,
+			offset:
+				this.args && this.args[1] != null && this.args[1].value != null ? this.args[1].value : 1,
 			defaultValue: defaultValue,
 			partitionColumns:
 				this.over && this.over.partition

@@ -12,7 +12,16 @@ describe('Test 2409 - LEAD/LAG/FIRST_VALUE/LAST_VALUE Window Functions', functio
 		{dept: 'IT', emp: 'Eve', salary: 2500},
 	];
 
-	describe('LEAD', function () {
+	describe('Test 2409 - LEAD Window Functions', function () {
+		it('parses LEAD into a PositionalWindowFunc AST node', function () {
+			var ast = alasql.parse('SELECT LEAD(salary) OVER (ORDER BY salary) AS next_salary FROM t');
+			var col = ast.statements[0].columns.find(function (c) {
+				return c.as === 'next_salary';
+			});
+			assert.ok(col instanceof alasql.yy.PositionalWindowFunc);
+			assert.strictEqual(col.funcid, 'LEAD');
+		});
+
 		it('returns the next row value with default offset', function () {
 			var res = alasql(
 				'SELECT emp, salary, LEAD(salary) OVER (ORDER BY salary) AS next_salary FROM ? ORDER BY salary',
@@ -24,6 +33,20 @@ describe('Test 2409 - LEAD/LAG/FIRST_VALUE/LAST_VALUE Window Functions', functio
 				{emp: 'Carol', salary: 1500, next_salary: 2000},
 				{emp: 'Dave', salary: 2000, next_salary: 2500},
 				{emp: 'Eve', salary: 2500, next_salary: null},
+			]);
+		});
+
+		it('honours an explicit offset of zero', function () {
+			var res = alasql(
+				'SELECT emp, salary, LEAD(salary, 0) OVER (ORDER BY salary) AS same_salary FROM ? ORDER BY salary',
+				[data]
+			);
+			assert.deepStrictEqual(res, [
+				{emp: 'Alice', salary: 1000, same_salary: 1000},
+				{emp: 'Bob', salary: 1200, same_salary: 1200},
+				{emp: 'Carol', salary: 1500, same_salary: 1500},
+				{emp: 'Dave', salary: 2000, same_salary: 2000},
+				{emp: 'Eve', salary: 2500, same_salary: 2500},
 			]);
 		});
 
@@ -99,7 +122,16 @@ describe('Test 2409 - LEAD/LAG/FIRST_VALUE/LAST_VALUE Window Functions', functio
 		});
 	});
 
-	describe('LAG', function () {
+	describe('Test 2409 - LAG Window Functions', function () {
+		it('parses LAG into a PositionalWindowFunc AST node', function () {
+			var ast = alasql.parse('SELECT LAG(salary) OVER (ORDER BY salary) AS prev_salary FROM t');
+			var col = ast.statements[0].columns.find(function (c) {
+				return c.as === 'prev_salary';
+			});
+			assert.ok(col instanceof alasql.yy.PositionalWindowFunc);
+			assert.strictEqual(col.funcid, 'LAG');
+		});
+
 		it('returns the previous row value with default offset', function () {
 			var res = alasql(
 				'SELECT emp, salary, LAG(salary) OVER (ORDER BY salary) AS prev_salary FROM ? ORDER BY salary',
@@ -160,7 +192,18 @@ describe('Test 2409 - LEAD/LAG/FIRST_VALUE/LAST_VALUE Window Functions', functio
 		});
 	});
 
-	describe('FIRST_VALUE', function () {
+	describe('Test 2409 - FIRST_VALUE Window Functions', function () {
+		it('parses FIRST_VALUE into a PositionalWindowFunc AST node', function () {
+			var ast = alasql.parse(
+				'SELECT FIRST_VALUE(salary) OVER (ORDER BY salary) AS first_sal FROM t'
+			);
+			var col = ast.statements[0].columns.find(function (c) {
+				return c.as === 'first_sal';
+			});
+			assert.ok(col instanceof alasql.yy.PositionalWindowFunc);
+			assert.strictEqual(col.funcid, 'FIRST_VALUE');
+		});
+
 		it('returns the partition-wide minimum-by-order value', function () {
 			var res = alasql(
 				'SELECT emp, salary, FIRST_VALUE(salary) OVER (ORDER BY salary) AS first_sal FROM ? ORDER BY salary',
@@ -204,7 +247,16 @@ describe('Test 2409 - LEAD/LAG/FIRST_VALUE/LAST_VALUE Window Functions', functio
 		});
 	});
 
-	describe('LAST_VALUE', function () {
+	describe('Test 2409 - LAST_VALUE Window Functions', function () {
+		it('parses LAST_VALUE into a PositionalWindowFunc AST node', function () {
+			var ast = alasql.parse('SELECT LAST_VALUE(salary) OVER (ORDER BY salary) AS last_sal FROM t');
+			var col = ast.statements[0].columns.find(function (c) {
+				return c.as === 'last_sal';
+			});
+			assert.ok(col instanceof alasql.yy.PositionalWindowFunc);
+			assert.strictEqual(col.funcid, 'LAST_VALUE');
+		});
+
 		it('returns the partition-wide maximum-by-order value', function () {
 			var res = alasql(
 				'SELECT emp, salary, LAST_VALUE(salary) OVER (ORDER BY salary) AS last_sal FROM ? ORDER BY salary',
@@ -268,6 +320,14 @@ describe('Test 2409 - LEAD/LAG/FIRST_VALUE/LAST_VALUE Window Functions', functio
 				},
 				{emp: 'Eve', salary: 2500, next_sal: null, prev_sal: 2000, first_sal: 1000, last_sal: 2500},
 			]);
+		});
+	});
+
+	describe('Test 2409 - identifier compatibility', function () {
+		it('still allows lead, lag, first_value, and last_value as column names', function () {
+			var named = [{lead: 1, lag: 2, first_value: 3, last_value: 4}];
+			var res = alasql('SELECT lead, lag, first_value, last_value FROM ? WHERE lead = 1', [named]);
+			assert.deepStrictEqual(res, [{lead: 1, lag: 2, first_value: 3, last_value: 4}]);
 		});
 	});
 });
